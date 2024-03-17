@@ -5,7 +5,6 @@ var http = require('http');
 /**
  * Normalize a port into a number, string, or false.
  */
-
 function normalizePort(val) {
   var port = parseInt(val, 10);
 
@@ -25,7 +24,6 @@ function normalizePort(val) {
 /**
  * Event listener for HTTP server "error" event.
  */
-
 function onError(error) {
   if (error.syscall !== 'listen') {
     throw error;
@@ -53,7 +51,6 @@ function onError(error) {
 /**
  * Event listener for HTTP server "listening" event.
  */
-
 function onListening() {
   var addr = server.address();
   var bind = typeof addr === 'string'
@@ -62,45 +59,52 @@ function onListening() {
   debug('Listening on ' + bind);
 }
 
-
 // Add HTTPS Section
 var fs = require('fs');
 var https = require('https');
 var port = normalizePort(process.env.PORT || '8080');
-var https_port    =   process.env.PORT_HTTPS || 8443;
-var options = {}
+var https_port = process.env.PORT_HTTPS || 8443;
+var options = {};
 
-if(process.env.ENV !== "DEV") {
-  var privatekey = fs.readFileSync('privatekey.pem', "utf8")
-  console.log(typeof privatekey)
-  var cert = fs.readFileSync('server.crt', "utf8")
-  var header = "-----BEGIN PRIVATE KEY-----"
-  var footer = "-----END PRIVATE KEY-----"
-  console.log(privatekey.split(header))
-  privatekey= privatekey.split(header)[1]
-  privatekey = privatekey.split(footer)[0]
-  privatekey = header + "\n" + privatekey.replace(/ /g, "\n") + footer+"\n"
+if (process.env.ENV !== "DEV") {
+  var privatekey = fs.readFileSync('privatekey.pem', "utf8");
+  var cert = fs.readFileSync('server.crt', "utf8");
 
-  console.log(privatekey)
+  var header = "-----BEGIN PRIVATE KEY-----";
+  var footer = "-----END PRIVATE KEY-----";
+  var privateKeySplit = privatekey.split(header);
+  if (privateKeySplit.length > 1) {
+    privatekey = privateKeySplit[1];
+    privatekey = privatekey.split(footer)[0];
+    privatekey = header + "\n" + privatekey.replace(/ /g, "\n") + footer + "\n";
+  } else {
+    console.error("Header/footer not found in private key");
+    // Handle the error appropriately, e.g., exit the process or provide a default private key
+  }
 
+  header = "-----BEGIN CERTIFICATE-----";
+  footer = "-----END CERTIFICATE-----";
+  var certSplit = cert.split(header);
+  if (certSplit.length > 1) {
+    cert = certSplit[1];
+    cert = cert.split(footer)[0];
+    cert = header + "\n" + cert.replace(/ /g, "\n") + footer + "\n";
+  } else {
+    console.error("Header/footer not found in certificate");
+    // Handle the error appropriately, e.g., exit the process or provide a default certificate
+  }
 
-  var header = "-----BEGIN CERTIFICATE-----"
-  var footer = "-----END CERTIFICATE-----"
-  cert= cert.split(header)[1]
-  cert = cert.split(footer)[0]
-  cert = header + "\n" + cert.replace(/ /g, "\n") + footer+"\n"
-
-  var options = {
-    key  : privatekey,
-    cert : cert
+  options = {
+    key: privatekey,
+    cert: cert
   };
-  app.set("port",https_port);
+  app.set("port", https_port);
 
   /*
   ° Create HTTPS server.
   */
   var server = https.createServer(options, app).listen(https_port, function () {
-  console.log('Magic happens on port ' + https_port);
+    console.log('Magic happens on port ' + https_port);
   });
 
   /**
@@ -112,9 +116,9 @@ if(process.env.ENV !== "DEV") {
 
   // Redirect from http port to https
   http.createServer(function (req, res) {
-    res.writeHead(301, { "Location": "https://" + req.headers['host'].replace(port,https_port) + req.url });
-    console.log("http requet, will go to >> ");
-    console.log("https://" + req.headers['host'].replace(port,https_port) + req.url );
+    res.writeHead(301, { "Location": "https://" + req.headers['host'].replace(port, https_port) + req.url });
+    console.log("http request, will go to >> ");
+    console.log("https://" + req.headers['host'].replace(port, https_port) + req.url);
     res.end();
   }).listen(port);
 } else {
